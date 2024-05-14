@@ -1,8 +1,16 @@
 package com.fatec.student.entities;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "TBL_STUDENT")
 public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
+
+    @Column(length = 40)
     private String name;
+
     private String course;
 
     public Integer getId() {
