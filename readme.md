@@ -290,3 +290,152 @@ public class StudentController {
     }
 } 
 ~~~
+
+# Aula 03 - 21/05
+## End Points
+### Buscar estudante por ID
+Para devolver um estudante por ID será necessario buscar no serviço o metodo getStudentById() dentro da class Student Service. Ficará assim:
+
+~~~java
+public Student getStudentById(int id){
+
+    }
+~~~
+Dentro dele é necessario que seja retornado um objeto do tipo estudante. Caso não seja encontrado retorne uma excessão
+~~~java
+return studentRepository.findById(id).orElseThrow(
+            ()-> new EntityNotFoundException("Aluno não cadastrado")
+        );
+~~~
+
+Ficando exatamente assim:
+~~~java
+@Service
+public class StudentService {
+    @Autowired
+    private StudentRepository studentRepository;
+
+    public List<Student>getStudents(){
+        return studentRepository.findAll();
+    }
+
+    public Student getStudentById(int id){
+        return studentRepository.findById(id).orElseThrow(
+            ()-> new EntityNotFoundException("Aluno não cadastrado")
+        );
+    }
+}
+~~~
+
+Volte para o Controlador e crie um mapeamento que recupera o estudante pelo seu ID. Mas precisa ter uma anotação: @GetMapping("{id}").
+
+Crie um metodo com o pathvariable para pegar o valor do serviço irá para a variavel id.
+
+~~~java
+@GetMapping("{id}")
+    public Student getStudentById(@PathVariable int id){
+    }
+~~~
+
+Dentro dela retorna getStudentById(id) através do serviço. Ficando assim:
+~~~java
+    @GetMapping("{id}")
+    public Student getStudentById(@PathVariable int id){
+        return studentService.getStudentById(id);
+    }
+~~~
+### Remover um estudante
+Para remover um estudante também será necessario criar um metodo dento da classe Controladora sem um retorno:
+
+~~~java
+public void deleteStudentByID(int id){
+    }
+~~~
+Dentro dele é necessario buscar o id, removendo do banco e criar uma excessão caso não seja encontrado. Ficando exatamente assim:
+~~~java
+public void deleteStudentByID(int id){
+        if(this.studentRepository.existsById(id)){
+            this.studentRepository.deleteById(id);
+        }
+        else{
+            throw new EntityNotFoundException("Aluno não cadastrado")/
+        }
+    }
+~~~
+Volte para o Controlador e crie um mapeamento sem retorno que busque o estudante pelo seu ID. Mas precisa ter a anotação de remoção: @DeleteMapping("{id}").
+
+Crie um metodo com o pathvariable para pegar o valor do serviço irá para a variavel id.
+
+~~~java
+@DeleteMapping("{id}")
+    public void deleteStudentById(@PathVariable int id){
+    }
+~~~
+
+Dentro dela crie sem retorno o deleteStudentById(id) através do serviço. Ficando assim:
+~~~java
+    @DeleteMapping("{id}")
+    public void deleteStudentById(@PathVariable int id){
+        this.studentService.deleteStudentById(id);
+    }
+~~~
+### Inserir um novo estudante
+Para inserir um estudante será necessario criar um metodo save dento da classe Controladora:
+~~~java
+public Student save(Student student){
+
+}
+~~~
+Dentro dele insere um novo objeto do tipo estudante com o metodo save. Ficando exatamente assim:
+~~~java
+public Student save(Student student){
+        return this.studentRepository.save(student);
+    }
+}
+~~~
+Volte para o controlador e insira uma anotação PostMapping e insira o metodo save do tipo estudante, retornando o próprio estudante:
+~~~java
+@PostMapping
+    public Student save(Student student){
+        return this.studentService.save(student);
+    }
+~~~
+O HTTP Tem o Header e Body tanto para o request quanto o response. A anotação RequestBody pega o body do request e coloca dentro do objeto estudante.
+ ~~~java
+@PostMapping
+    public Student save(@RequestBody Student student){
+        return this.studentService.save(student);
+    }
+~~~
+### Atualizar um estudante
+Para atualizar um estudante será necessario criar um metodo nulo dento da classe Controladora que busque pelo id e o objeto do tipo estudante:
+~~~java
+public void updateStudentById(int id, Student student){
+    }
+~~~
+Crie um try catch para tentar executar algo, caso não seja possivel retorna a excessão. Ficando assim:
+~~~java
+public void updateStudentById(int id, Student student){
+        try {
+
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+    }
+~~~
+Agora precisamos da referencia. Vamos criar um objeto auxiliar que irá buscar o nome e curso do estudante. Dentro do try iremos tentar capiturar o dado do estudante, caso não seja possivel retorna uma excessão.
+Ficando assim:
+~~~java
+public void updateStudentById(int id, Student student){
+        try {
+            Student aux = studentRepository.getReferenceById(id);
+            aux.setCourse(student.getCourse());
+            aux.setCourse(student.getName());
+            this.studentRepository.save(aux);
+
+        } catch (Exception e) {
+           throw new EntityNotFoundException("Aluno não encontrado");
+        }
+    }
+~~~
+próxima aula iremos inserir o put dentor do controlador para atualizar os dados do aluno.
