@@ -41,7 +41,7 @@ public class StudentService {
         try {
             Student aux = studentRepository.getReferenceById(id);
             aux.setCourse(student.getCourse());
-            aux.setCourse(student.getName());
+            aux.setName(student.getName());
             this.studentRepository.save(aux);
 
         } catch (Exception e) {
