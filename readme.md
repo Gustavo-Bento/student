@@ -686,6 +686,181 @@ public class ResourceExceptionHandler {
     }
 }
 ~~~
+# Aula 05 - 04/06
+## Data Transfer Object
+Padrão de transferencia de objetos, a entidade deverá ter domínio entre o serviço e o controlador. As DTO's se aplicam tanto para o request e o response dentro da arquitetura do objeto. Esse mecanismo isola o serviço do controlador fazendo com que o banco de dados não acesse a entidade.
 
+### DTO de Response
+![alt text](image-2.png)
+Dentro da pasta student crie uma pasta chamada dto. Iremos criar um record ao invés de uma classe, tornando-os registros. Eles são imutaveis e após sua criação será inalteravel.
+Crie um StudentResponse.java dentro da pasta. Nela será invés de class será record. Inserimos os parametros id, name e course. Ficando extamente assim assim:
+~~~java
+package com.fatec.student.dto;
 
+public record StudentResponse(
+        int id,
+        String name,
+        String course) {
 
+}
+~~~
+#### DTO Response no Controller
+Voltamos para camada controller e aplicaremos o DTO para os responses.
+Na lista que retorna todos os estudantes substituiremos Student por StudentResponse, ficando exatamente assim:
+Para buscar todos o estudantes:
+~~~java
+@GetMapping
+    public ResponseEntity<List<StudentResponse>> getStudents(){
+        return ResponseEntity.ok(studentService.getStudents());
+    }
+~~~
+Para buscar o estudante pelo Id:
+~~~java
+@GetMapping("{id}")
+    public ResponseEntity<StudentResponse> getStudentById(@PathVariable int id){
+        return ResponseEntity.ok(studentService.getStudentById(id));
+    }
+~~~
+Para salvar mais um estudante:
+~~~java
+@PostMapping
+    public ResponseEntity<StudentResponse> save(@RequestBody Student student){
+        StudentResponse newStudent = this.studentService.save(student);
+        URI location = ServletUriComponentsBuilder
+                        .fromCurrentRequest()
+                        .path("/id")
+                        .buildAndExpand(newStudent.id())
+                        .toUri();
+        return ResponseEntity.created(location).body(newStudent);
+    }
+~~~
+#### ModelMapper para Response
+Para mapear a lista dos objetos estudantes para a lista do student response. Crie uma pasta mappers dentro da pasta student.
+![alt text](image-3.png) 
+Crie uma classe StudantMapper.
+Dentro dessa pasta cria uma classe StudentMapper. Ele irá mapear a classe student através do metodo get de cada atributo da classe. O nome do metodo estatico chamado toDTO. Serão o getId, getName, getCourse. Não se esqueça de sempre importar o pacote da classe. Ficando exatamente assim:
+~~~java
+package com.fatec.student.mappers;
+
+public class StudentMapper{
+    public static StudentResponse toDTO(Student student){
+        return new StudentResponse(
+            student.getId(),
+            student.getName(),
+            student.getCourse()
+        )
+    }
+}
+~~~
+
+#### Java Lambda Expression with Collection
+Volte para o StudentService e ao invés de devolver uma lista de estudante, devolva um StudentResponse. Mas para retornar uma lista do tipo StudnetResponse deveremos mudar dentro do metodo. 
+Para que cada objeto de uma lista seja retornavel, ao invés de aplicarmos um for, simplicaremos a estrutura utilizando funções lambda em java. Iremos usar Lambda no retorno da lista de estudantes dentro do metodo studantResponse. O metodo stream() será nossa função lambda. Ela devera mapear a classe StudnetMapper, convertendo a coleção para dentro da lista.
+
+#### DTO Response dentro do Service
+
+Para buscar todos os estudantes utilizando lambda:
+~~~java
+public List<StudentResponse>getStudents(){
+        List<Student> students = studentRepository.findAll();
+        return students.stream()
+                        .map( s -> StudentMapper.toDTO(s))
+                        .collect(Collectors.toList());
+                       
+    }
+~~~
+Para buscar o estudante pelo id:
+~~~java
+public StudentResponse getStudentById(int id){
+        Student student = studentRepository.findById(id).orElseThrow(
+            ()-> new EntityNotFoundException("Aluno não cadastrado")
+        );
+        return StudentMapper.toDTO(student);
+    }
+~~~
+Para salvar um novo estudante:
+~~~java
+public StudentResponse save(Student student){
+        return StudentMapper.toDTO(this.studentRepository.save(student));
+    }
+~~~
+
+### DTO da Request
+Para mapear a lista dos objetos estudantes para a lista do student request. Crie um record dentro da pasta dto.
+![alt text](image-4.png)
+A estrutura será identica ao do Response passando o paramentro Name e course. Ficando assim:
+~~~java
+package com.fatec.student.dto;
+
+public record StudentRequest(
+        String name, 
+        String course) {
+    
+}
+~~~
+
+#### DTO da Request no Controller
+Voltamos para camada controller e aplicaremos o DTO para os request.
+No save que salva o novo estudante substituiremos o parametro do metodo de Student por StudentRequest.
+No metodo save:
+~~~java
+@PostMapping
+    public ResponseEntity<StudentResponse> save(@RequestBody StudentRequest student){
+        StudentResponse newStudent = this.studentService.save(student);
+        URI location = ServletUriComponentsBuilder
+                        .fromCurrentRequest()
+                        .path("/id")
+                        .buildAndExpand(newStudent.id())
+                        .toUri();
+        return ResponseEntity.created(location).body(newStudent);
+    }
+~~~
+No metodo update:
+~~~java
+@PutMapping("{id}")
+    public ResponseEntity<Void> update(@PathVariable int id, @RequestBody StudentRequest student){
+        this.studentService.updateStudentById(id, student);
+        return ResponseEntity.ok().build();
+    }
+~~~
+#### ModelMapper para o Request
+Assim como aplicamos um ModelMapper para os Response, deveremos aplicar para o Request. Aplicamos para o nome e o curso do estudante. Ficando exatamente assim:
+~~~java
+public static Student toEntity(StudentRequest request){
+        Student student = new Student();
+        student.setName(request.name());
+        student.setCourse(request.course());
+        return student;
+    }
+~~~
+#### DTO da Request no Service
+
+No service substitua o objeto Student por StudentRequest.
+No metodo save:
+~~~java
+public StudentResponse save(StudentRequest request){
+        Student student = StudentMapper.toEntity(request);
+        return StudentMapper.toDTO(this.studentRepository.save(student));
+    }
+~~~
+No metodo updateStudentById:
+~~~java
+public void updateStudentById(int id, StudentRequest student){
+        try {
+            Student aux = studentRepository.getReferenceById(id);
+            aux.setCourse(student.course());
+            aux.setName(student.name());
+            this.studentRepository.save(aux);
+
+        } catch (Exception e) {
+           throw new EntityNotFoundException("Aluno não encontrado");
+        }
+    }
+~~~
+## Desabilitando o Sprung JPA na camada do controler
+Precisameos desabilitar o JPA de acessar a camada de view Controller. 
+Dentro do application.properties deixamos
+
+~~~properties
+spring.jpa.open-in-view=false
+~~~
