@@ -1,11 +1,15 @@
 package com.fatec.student.services;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.fatec.student.dto.StudentRequest;
+import com.fatec.student.dto.StudentResponse;
 import com.fatec.student.entities.Student;
+import com.fatec.student.mappers.StudentMapper;
 import com.fatec.student.repositories.StudentRepository;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -15,15 +19,19 @@ public class StudentService {
     @Autowired
     private StudentRepository studentRepository;
 
-    public List<Student>getStudents(){
-        return studentRepository.findAll();
-
+    public List<StudentResponse>getStudents(){
+        List<Student> students = studentRepository.findAll();
+        return students.stream()
+                        .map( s -> StudentMapper.toDTO(s))
+                        .collect(Collectors.toList());
+                       
     }
     
-    public Student getStudentById(int id){
-        return studentRepository.findById(id).orElseThrow(
+    public StudentResponse getStudentById(int id){
+        Student student = studentRepository.findById(id).orElseThrow(
             ()-> new EntityNotFoundException("Aluno não cadastrado")
         );
+        return StudentMapper.toDTO(student);
     }
 
     public void deleteStudentById(int id){
@@ -34,14 +42,15 @@ public class StudentService {
             throw new EntityNotFoundException("Aluno não cadastrado");
         }
     }
-    public Student save(Student student){
-        return this.studentRepository.save(student);
+    public StudentResponse save(StudentRequest request){
+        Student student = StudentMapper.toEntity(request);
+        return StudentMapper.toDTO(this.studentRepository.save(student));
     }
-    public void updateStudentById(int id, Student student){
+    public void updateStudentById(int id, StudentRequest student){
         try {
             Student aux = studentRepository.getReferenceById(id);
-            aux.setCourse(student.getCourse());
-            aux.setName(student.getName());
+            aux.setCourse(student.course());
+            aux.setName(student.name());
             this.studentRepository.save(aux);
 
         } catch (Exception e) {
