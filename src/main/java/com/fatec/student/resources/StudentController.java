@@ -12,6 +12,8 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 
 @RestController
+@CrossOrigin
 @RequestMapping("students")
 public class StudentController {
 
@@ -43,7 +46,7 @@ public class StudentController {
         return ResponseEntity.noContent().build();
     }
     @PostMapping
-    public ResponseEntity<StudentResponse> save(@RequestBody StudentRequest student){
+    public ResponseEntity<StudentResponse> save(@Validated @RequestBody StudentRequest student){
         StudentResponse newStudent = this.studentService.save(student);
         URI location = ServletUriComponentsBuilder
                         .fromCurrentRequest()
@@ -53,7 +56,7 @@ public class StudentController {
         return ResponseEntity.created(location).body(newStudent);
     }
     @PutMapping("{id}")
-    public ResponseEntity<Void> update(@PathVariable int id, @RequestBody StudentRequest student){
+    public ResponseEntity<Void> update(@Validated @PathVariable int id, @RequestBody StudentRequest student){
         this.studentService.updateStudentById(id, student);
         return ResponseEntity.ok().build();
     }
