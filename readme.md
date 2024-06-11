@@ -864,3 +864,97 @@ Dentro do application.properties deixamos
 ~~~properties
 spring.jpa.open-in-view=false
 ~~~
+# Aula 06 - 11/06
+## Validation
+### Adicionando a Dependência
+Para inserimos as validações no Back-End é necessario adicionar um dependência no documento pom.xml:
+~~~xml
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+~~~
+### Inserir uma validação no DTO
+Vá para SudentRequest para inserir uma anotação para ser feita a validação.
+>Null - Quando não passa um parametro
+>Blank - Quando passa um parametro vazio entre aspas "".
+Para o atributo Name insira a anotação:
+~~~java
+@NotNull(message = "Nome não pode ser nulo")
+String name,
+~~~
+Para o atributo Course insira a anotação:
+~~~java
+@NotBlank(message = "Curso não pode ser nulo") 
+String course
+~~~
+
+### Inserir a validação no resources
+Adicione a anotação @Validated para o save e update. Ficando assim:
+~~~java
+@PostMapping
+public ResponseEntity<StudentResponse> save(@Validated @RequestBody StudentRequest student)
+
+@PutMapping("{id}")
+public ResponseEntity<Void> update(@Validated @PathVariable int id, @RequestBody StudentRequest student)
+~~~
+### Inserir uma validação no banco de dados
+Acesse o entities Student. A constraint que você deverá anotar será dentro da anotação @Column:
+~~~java
+@Column(length = 40, nullable = false)
+~~~
+### Validation Errors
+Crie um arquivo dentro de exceptions com o nome da classe ValidationErrors.java
+![alt text](image-5.png)
+Essa classe será herdada de StadardError adicionando mais elementos dentro dele.
+Detnro dessa classe terá uma lista com todos os itens do erro encontrado.
+Iremos criar um metodo para adicionar um novo erro de validação e um metodo para buscar o erro.
+Ficando exatamente assim:
+~~~java
+package com.fatec.student.resources.exceptions;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class ValidationErrors extends StandardError{
+    private List<String> errors = new ArrayList<>();
+    
+    public void addError(String errors){
+        this.errors.add(errors);
+    }
+    public List<String> getErrors(){
+        return this.errors;
+    }
+}
+~~~
+### Incluindo errors no Resource Exception Handler
+Para tratarmos o erro correto devemos criar um novo metodo validationException. Ele terá parametros parecidos com o metodo já criado entityNotFoundException. Fincando exatamente assim:
+~~~java
+@ExceptionHandler(MethodArgumentNotValidException.class)
+public ResponseEntity<ValidationErrors> validationException(
+        MethodArgumentNotValidException exception,
+         HttpServletRequest request) {
+
+    ValidationErrors error = new ValidationErrors();
+    error.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+    error.setError("Validation Error");
+    error.setMessage(exception.getMessage());
+    error.setTimeStamp(Instant.now());
+    error.setPath(request.getRequestURI());
+
+    return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error);
+    }
+~~~
+Ao copilar deveremos incluir a descrição do erro. Para isso inserimos um metodo exception dentro do metodo validationException:
+~~~java
+exception.getBindingResult()
+    .getFieldErrors()
+    .forEach(e->error.addError(e.getDefaultMessage()));
+~~~
+### Adicionando o CORS para o front end
+Dentro de studentController adicione a anotação @
+
+
+
+
+
